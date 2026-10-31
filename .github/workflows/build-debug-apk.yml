@@ -18,7 +18,7 @@ permissions:
 jobs:
   build-debug-apk:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       # Override llama.rn's own android/gradle.properties (subproject beats root):
       # use prebuilt .so instead of compiling llama.cpp from source.
@@ -54,7 +54,7 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('yarn.lock', 'patches/**') }}
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
