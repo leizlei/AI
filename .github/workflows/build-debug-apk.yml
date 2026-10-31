@@ -56,6 +56,20 @@ jobs:
       - name: Grant execute permission for postinstall script
         run: chmod +x ./scripts/postinstall.sh
 
+
+      # Remove stale tsc-compiled .js leftovers that shadow the real .ts/.tsx
+      # sources. Metro picks .js first; the leftovers use standard decorators
+      # (__esDecorate) and break WatermelonDB legacy @text/@field at runtime,
+      # causing the ensureDecoratorUsedProperly crash on loadSessionList.
+      - name: Remove stale compiled .js shadows
+        run: |
+          find src -name '*.js' | while read -r f; do
+            base="${f%.js}"
+            if [ -f "$base.ts" ] || [ -f "$base.tsx" ]; then
+              rm -f "$f"
+            fi
+          done
+
       - name: Install dependencies
         run: yarn install
 
