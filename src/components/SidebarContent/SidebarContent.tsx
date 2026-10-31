@@ -1,5 +1,6 @@
 import React, {useContext, useEffect, useState} from 'react';
 import {TouchableOpacity, View, Alert, SectionList} from 'react-native';
+import {Modal, TextInput} from 'react-native';
 import {observer} from 'mobx-react';
 import {Divider, Drawer, Text} from 'react-native-paper';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
@@ -9,7 +10,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '../../hooks';
 import {createStyles} from './styles';
 import {PlusDrawerItem} from './PlusDrawerItem/PlusDrawerItem';
-import {chatSessionStore, SessionMetaData} from '../../store';
+import {chatSessionStore, sessionGroupStore, SessionMetaData} from '../../store';
 import {Menu, RenameModal, Checkbox} from '..';
 import {
   BenchmarkIcon,
@@ -47,6 +48,7 @@ interface SessionItemProps {
   onPressDelete: (sessionId: string) => void;
   onPressExport: (sessionId: string) => void;
   onPressSelect: (sessionId: string) => void;
+  onPressMoveToGroup: (session: SessionMetaData) => void;
   isSelectionMode: boolean;
   isSelected: boolean;
   onToggleSelection: (sessionId: string) => void;
@@ -71,6 +73,7 @@ const SessionItem = React.memo<SessionItemProps>(
     onPressDelete,
     onPressExport,
     onPressSelect,
+    onPressMoveToGroup,
     isSelectionMode,
     isSelected,
     onToggleSelection,
@@ -172,6 +175,14 @@ const SessionItem = React.memo<SessionItemProps>(
               }}
               label={l10n.common.export}
               leadingIcon={() => <ShareIcon stroke={theme.colors.primary} />}
+            />
+            <Menu.Item
+              onPress={() => {
+                onPressMoveToGroup(session);
+                onMenuDismiss();
+              }}
+              label={l10n.components.sidebarContent.moveToGroup}
+              leadingIcon={() => <ChatIcon stroke={theme.colors.primary} />}
             />
             <Menu.Item
               onPress={() => {
@@ -308,6 +319,9 @@ export const SidebarContent: React.FC<DrawerContentComponentProps> = observer(
     const [menuPosition, setMenuPosition] = useState({x: 0, y: 0});
     const [sessionToRename, setSessionToRename] =
       useState<SessionMetaData | null>(null);
+    const [sessionToGroup, setSessionToGroup] =
+      useState<SessionMetaData | null>(null);
+    const [groupName, setGroupName] = useState('');
 
     const theme = useTheme();
     const styles = createStyles(theme);
@@ -427,6 +441,21 @@ export const SidebarContent: React.FC<DrawerContentComponentProps> = observer(
       [closeMenu],
     );
 
+    const handlePressMoveToGroup = React.useCallback(
+      (session: SessionMetaData) => {
+        setGroupName(sessionGroupStore.groupOf(session.id));
+        setSessionToGroup(session);
+      },
+      [],
+    );
+
+    const handleGroupSubmit = () => {
+      if (sessionToGroup) {
+        sessionGroupStore.setGroup(sessionToGroup.id, groupName);
+        setSessionToGroup(null);
+      }
+    };
+
     const handleExitSelectionMode = React.useCallback(() => {
       chatSessionStore.exitSelectionMode();
     }, []);
@@ -516,6 +545,7 @@ export const SidebarContent: React.FC<DrawerContentComponentProps> = observer(
             onPressDelete={onPressDelete}
             onPressExport={handlePressExport}
             onPressSelect={handlePressSelect}
+            onPressMoveToGroup={handlePressMoveToGroup}
             isSelectionMode={chatSessionStore.isSelectionMode}
             isSelected={isSelected}
             onToggleSelection={handleToggleSelection}
@@ -684,6 +714,48 @@ export const SidebarContent: React.FC<DrawerContentComponentProps> = observer(
           onClose={() => setSessionToRename(null)}
           session={sessionToRename}
         />
+
+        <Modal
+          transparent={true}
+          visible={sessionToGroup !== null}
+          onRequestClose={() => setSessionToGroup(null)}
+          animationType="fade">
+          <View style={styles.groupModalOverlay}>
+            <View style={styles.groupModalContent}>
+              <Text style={styles.groupModalTitle}>
+                {l10n.components.sidebarContent.moveToGroup}
+              </Text>
+              <TextInput
+                style={styles.groupModalInput}
+                placeholder={
+                  l10n.components.sidebarContent.moveToGroupPlaceholder
+                }
+                placeholderTextColor={theme.colors.onSurfaceVariant}
+                value={groupName}
+                maxLength={30}
+                onChangeText={setGroupName}
+                autoFocus={true}
+                onSubmitEditing={handleGroupSubmit}
+              />
+              <View style={styles.groupModalActions}>
+                <TouchableOpacity
+                  onPress={() => setSessionToGroup(null)}
+                  style={styles.groupModalBtn}>
+                  <Text style={styles.groupModalBtnText}>
+                    {l10n.common.cancel}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleGroupSubmit}
+                  style={styles.groupModalBtn}>
+                  <Text style={styles.groupModalBtnTextPrimary}>
+                    {l10n.common.ok}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </GestureHandlerRootView>
     );
   },

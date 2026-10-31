@@ -258,7 +258,24 @@
       "importing": "Importing…",
       "empty": "No documents yet. Tap Import to add a text file.",
       "removeButton": "Remove",
-      "imported": "Imported: {{name}}"
+      "imported": "Imported: {{name}}",
+      "chunkCountLabel": "RAG chunks per query",
+      "chunkCountDescription": "How many matching text chunks are fed to the model each time. Fewer chunks keep more context for the reply.",
+      "renameButton": "Rename",
+      "clearAllButton": "Clear all documents",
+      "renamePlaceholder": "New document name"
+    },
+    "promptTemplates": {
+      "title": "Prompt Templates",
+      "description": "Save reusable instruction prompts. Tap a template to copy it, then paste it into your chat.",
+      "addButton": "New template",
+      "empty": "No templates yet. Add one to save a reusable prompt.",
+      "copyButton": "Copy",
+      "deleteButton": "Delete",
+      "copied": "Copied to clipboard",
+      "newTitle": "New Prompt Template",
+      "titlePlaceholder": "Template title",
+      "contentPlaceholder": "Prompt content"
     }
   },
   "memory": {
@@ -622,7 +639,10 @@
       "ttft": "{{value}}ms TTFT",
       "draftAccepted": "draft: {{accepted}}/{{total}} ({{pct}}%)",
       "interrupted": "Interrupted",
-      "truncated": "Cut off — likely context full"
+      "truncated": "Cut off — likely context full",
+      "ragSourceLabel": "Sources",
+      "ragSourceTitle": "Referenced documents",
+      "ragSourceOk": "OK"
     },
     "exportUtils": {
       "fileSaved": "File Saved",
@@ -678,7 +698,20 @@
         "thinkingDisabled": "Thinking mode disabled",
         "thinkText": "Think",
         "cycleEffort": "Reasoning effort: {{level}}. Double tap to cycle effort level"
-      }
+      },
+      "docSearchToggle": {
+        "enableDocSearch": "Enable document search",
+        "disableDocSearch": "Disable document search",
+        "docSearchText": "Docs"
+      },
+      "webSearchToggle": {
+        "enableWebSearch": "Enable web search",
+        "disableWebSearch": "Disable web search",
+        "webSearchText": "Web",
+        "notConfiguredTitle": "Web search not configured",
+        "notConfiguredMessage": "Set up a search provider (e.g. SearXNG local address or an API key) in Settings before using web search."
+      },
+      "quickSettings": "Settings"
     },
     "contentReportSheet": {
       "title": "Report Content",
@@ -834,6 +867,7 @@
       "export": "Export/Import",
       "exportCurrentSession": "Export current session",
       "exportCurrentSessionMarkdown": "Export as Markdown",
+      "exportCurrentSessionText": "Export as Text",
       "exportAllSessions": "Export all sessions",
       "exportChatSession": "Export chat session",
       "importSessions": "Import sessions"
@@ -1072,7 +1106,9 @@
         "fourWeeksAgo": "4 weeks ago",
         "lastMonth": "Last month",
         "older": "Older"
-      }
+      },
+      "moveToGroup": "Move to group",
+      "moveToGroupPlaceholder": "Group name (empty removes from group)"
     },
     "usageStats": {
       "tooltip": {

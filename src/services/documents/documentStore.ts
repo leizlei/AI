@@ -71,14 +71,48 @@ const tokenize = (query: string): string[] => {
   return out.filter(t => t.length > 0);
 };
 
+/**
+ * Best-effort lift of Word document text from a .docx container. A .docx is a
+ * zip whose body lives in word/document.xml; the visible text sits inside
+ * <w:t> nodes. When the file picker returns the XML (or a partially decoded
+ * copy of it) we can strip tags and recover the words. Returns the original
+ * string when no recognizable Word markup is present.
+ */
+const extractDocxText = (raw: string): string => {
+  const hasDocXml =
+    /<w:document|<w:body|<w:document xmlns|<w:t[^>]*>/i.test(raw);
+  if (!hasDocXml) {
+    return raw;
+  }
+  const paragraphs = raw.match(/<w:p[ >][\s\S]*?<\/w:p>/g) ?? [];
+  if (paragraphs.length === 0) {
+    return raw;
+  }
+  const lines = paragraphs.map(p => {
+    const texts = p.match(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g) ?? [];
+    return texts
+      .map(t => t.replace(/<w:t[^>]*>/i, '').replace(/<\/w:t>$/i, ''))
+      .join('')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+  });
+  return lines.filter(l => l.trim()).join('\n');
+};
+
 class DocumentStore {
   documents: StoredDocument[] = [];
+
+  /** How many matching chunks a retrieval returns (user-configurable, 1-8). */
+  retrievalChunkCount: number = TOP_N;
 
   constructor() {
     makeAutoObservable(this);
     makePersistable(this, {
       name: 'DocumentStore',
-      properties: ['documents'],
+      properties: ['documents', 'retrievalChunkCount'],
       storage: AsyncStorage,
     });
   }
@@ -89,6 +123,20 @@ class DocumentStore {
 
   list(): StoredDocument[] {
     return this.documents;
+  }
+
+  /** Rename a stored document (updates the display name used by retrieval). */
+  renameDocument(id: string, newName: string): void {
+    const trimmed = (newName || '').trim();
+    if (!trimmed) {
+      return;
+    }
+    runInAction(() => {
+      const doc = this.documents.find(d => d.id === id);
+      if (doc) {
+        doc.name = trimmed;
+      }
+    });
   }
 
   async removeDocument(id: string): Promise<void> {
@@ -128,7 +176,20 @@ class DocumentStore {
     if (!raw || !raw.trim()) {
       throw new Error('The selected file is empty or unreadable as text.');
     }
-    const clipped = raw.slice(0, MAX_DOC_CHARS);
+    // docx files are zip containers; try to lift the plain text out of the
+    // document.xml so users can import Word documents without extra deps.
+    const text =
+      /\.docx$/i.test(name) || name.toLowerCase().startsWith('word')
+        ? extractDocxText(raw)
+        : raw;
+    if (!text.trim()) {
+      throw new Error(
+        /\.docx$/i.test(name)
+          ? 'This .docx could not be read as text (Word files are compressed). Try saving it as .txt or .md instead.'
+          : 'The selected file is empty or unreadable as text.',
+      );
+    }
+    const clipped = text.slice(0, MAX_DOC_CHARS);
     const chunks = chunkText(clipped);
     if (chunks.length === 0) {
       throw new Error('No readable text found in the selected file.');
@@ -147,9 +208,11 @@ class DocumentStore {
 
   /**
    * Lightweight keyword retrieval across imported documents. Returns up to
-   * TOP_N best-matching chunks, each tagged with its source document name.
+   * `retrievalChunkCount` best-matching chunks, each tagged with its source
+   * document name.
    */
-  search(query: string, topN: number = TOP_N): {name: string; text: string; score: number}[] {
+  search(query: string, topN?: number): {name: string; text: string; score: number}[] {
+    const limit = topN ?? this.retrievalChunkCount;
     const tokens = tokenize(query);
     if (tokens.length === 0) {
       return [];
@@ -171,7 +234,7 @@ class DocumentStore {
         }
       }
     }
-    return scored.sort((a, b) => b.score - a.score).slice(0, topN);
+    return scored.sort((a, b) => b.score - a.score).slice(0, limit);
   }
 }
 

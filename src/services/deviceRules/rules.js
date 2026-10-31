@@ -1,0 +1,39 @@
+import { Platform } from 'react-native';
+import { parseDeviceRules } from './parse';
+import { getRulesUrl } from './rulesUrls';
+// Online fetch of `rules.<platform>.v2.json`. Returns null (→ bundled floor) on
+// any failure: network error, non-2xx, parse throw, platform mismatch, or a
+// parse that yields zero models across all tiers (an incompatible hosted JSON).
+// Never throws.
+const FETCH_TIMEOUT_MS = 10000;
+const TIERS = ['low', 'mid', 'high', 'flagship'];
+const hasAnyModels = (rules) => TIERS.some(tier => rules.tiers[tier].models.length > 0);
+export async function fetchRules(appVersion, platform = Platform.OS) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+        const response = await fetch(getRulesUrl(platform), {
+            signal: controller.signal,
+        });
+        if (!response.ok) {
+            return null;
+        }
+        const json = await response.json();
+        const rules = parseDeviceRules(json, appVersion);
+        if (rules.platform !== platform) {
+            return null;
+        }
+        // A model-less doc (wrong tier shape, or every candidate gated out) parses
+        // cleanly but resolves an empty list; fall to the bundled floor instead.
+        if (!hasAnyModels(rules)) {
+            return null;
+        }
+        return rules;
+    }
+    catch {
+        return null;
+    }
+    finally {
+        clearTimeout(timeout);
+    }
+}

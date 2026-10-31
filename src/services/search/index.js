@@ -1,0 +1,36 @@
+import { fetchText } from './providers/http';
+import { TavilyProvider } from './providers/tavily';
+import { BraveProvider } from './providers/brave';
+import { ExaProvider } from './providers/exa';
+import { FirecrawlProvider } from './providers/firecrawl';
+import { ParallelProvider } from './providers/parallel';
+import { YouProvider } from './providers/you';
+import { SearXNGLocalProvider } from './providers/searxngLocal';
+export { budgetHits, budgetPage, getCachedHits, setCachedHits, resetSearchCache, } from './searchBudget';
+/** Wires each adapter to a key accessor so it reads its BYOK key lazily, without importing the store. */
+export const createSearchProvider = (id, getKey, getBaseUrl) => {
+    switch (id) {
+        case 'tavily':
+            return new TavilyProvider(getKey);
+        case 'brave':
+            return new BraveProvider(getKey);
+        case 'exa':
+            return new ExaProvider(getKey);
+        case 'firecrawl':
+            return new FirecrawlProvider(getKey);
+        case 'parallel':
+            return new ParallelProvider(getKey);
+        case 'you':
+            return new YouProvider(getKey);
+        case 'searxng-local':
+            return new SearXNGLocalProvider(getBaseUrl ?? (() => ''));
+    }
+};
+/** Fallback reader for providers without native read(): r.jina.ai returns clean plain text, no key. */
+export const readWithDefaultReader = async (url, signal) => {
+    const text = await fetchText(`https://r.jina.ai/${encodeURI(url)}`, {
+        method: 'GET',
+        signal,
+    });
+    return { url, text };
+};

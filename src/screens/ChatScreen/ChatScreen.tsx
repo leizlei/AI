@@ -26,6 +26,7 @@ import {
   chatSessionStore,
   palStore,
   serverStore,
+  searchProviderStore,
   ttsStore,
   uiStore,
   voiceModeStore,
@@ -259,6 +260,20 @@ export const ChatScreen: React.FC = observer(() => {
     await persistReasoning(enabled);
   };
 
+  // Manual doc-search switch. The value is read by the send path
+  // (useChatSession) so a turn can force-retrieve imported documents and
+  // inject the excerpts regardless of whether the local model opts to issue
+  // the local_docs tool call.
+  const handleDocSearchToggle = (enabled: boolean) => {
+    uiStore.docSearchEnabled = enabled;
+  };
+
+  // Manual web-search switch. Only toggled while a search provider is
+  // configured; tapping while unconfigured is intercepted in the UI.
+  const handleWebSearchToggle = (enabled: boolean) => {
+    uiStore.webSearchEnabled = enabled;
+  };
+
   // Graded pill cycle: off -> values[0] -> ... -> values[n] -> off.
   const handleEffortCycle = async () => {
     const values = reasoningCapability.effortValues;
@@ -324,6 +339,13 @@ export const ChatScreen: React.FC = observer(() => {
             effortValues: reasoningCapability.effortValues,
             reasoningEffort,
             onEffortCycle: handleEffortCycle,
+            showDocSearchToggle: true,
+            isDocSearchEnabled: uiStore.docSearchEnabled,
+            onDocSearchToggle: handleDocSearchToggle,
+            showWebSearchToggle: true,
+            isWebSearchEnabled: uiStore.webSearchEnabled,
+            onWebSearchToggle: handleWebSearchToggle,
+            webSearchConfigured: searchProviderStore.canSearch,
           }}
           textInputProps={{
             placeholder: !modelStore.engine

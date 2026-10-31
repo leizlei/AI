@@ -28,6 +28,7 @@ import {importChatSessions} from '../../utils/importUtils';
 import {
   exportChatSession,
   exportChatSessionAsMarkdown,
+  exportChatSessionAsText,
   exportAllChatSessions,
 } from '../../utils/exportUtils';
 
@@ -121,6 +122,18 @@ export const HeaderRight: React.FC = observer(() => {
         await exportChatSessionAsMarkdown(session.id);
       } catch (error) {
         console.error('Error exporting current session as markdown:', error);
+        Alert.alert('Export Error', 'Failed to export the current session.');
+      }
+    }
+    closeMenu();
+  };
+
+  const onPressExportCurrentSessionAsText = async () => {
+    if (session?.id) {
+      try {
+        await exportChatSessionAsText(session.id);
+      } catch (error) {
+        console.error('Error exporting current session as text:', error);
         Alert.alert('Export Error', 'Failed to export the current session.');
       }
     }
@@ -256,6 +269,12 @@ export const HeaderRight: React.FC = observer(() => {
               key="export-current-markdown"
               onPress={onPressExportCurrentSessionAsMarkdown}
               label={l10n.components.headerRight.exportCurrentSessionMarkdown}
+            />,
+            <Menu.Item
+              disabled={!session?.id}
+              key="export-current-text"
+              onPress={onPressExportCurrentSessionAsText}
+              label={l10n.components.headerRight.exportCurrentSessionText}
             />,
             <Menu.Item
               key="export-all"

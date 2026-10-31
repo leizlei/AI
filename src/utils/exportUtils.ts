@@ -338,6 +338,50 @@ export const exportChatSessionAsMarkdown = async (
 };
 
 /**
+ * Export a single chat session as a plain-text transcript (.txt). Keeps only
+ * the chronological dialogue — no markdown headings or export metadata — for
+ * the simplest possible reading/sharing.
+ */
+export const exportChatSessionAsText = async (
+  sessionId: string,
+): Promise<void> => {
+  try {
+    const sessionData = await chatSessionRepository.getSessionById(sessionId);
+    if (!sessionData) {
+      throw new Error('Session not found');
+    }
+
+    const {session, messages} = sessionData;
+    const exportedAt = format(new Date(), 'yyyy-MM-dd HH:mm');
+    const title = session.title.replace(/\s+/g, ' ').trim();
+
+    const lines: string[] = [
+      `# ${title}`,
+      `(Exported: ${exportedAt})`,
+      '--------------------------------',
+      '',
+    ];
+
+    for (const msg of [...messages].reverse()) {
+      const exported = toExportedMessage(msg);
+      const role = exported.author === userId ? 'You' : 'AI';
+      lines.push(`[${role}]`, exported.text ?? '', '');
+    }
+
+    const timestamp = format(new Date(), 'yyyy-MM-dd_HH-mm-ss');
+    const sanitizedTitle = session.title
+      .replace(/[^a-z0-9]/gi, '_')
+      .toLowerCase();
+    const filename = `chat_${sanitizedTitle}_${timestamp}.txt`;
+
+    await shareJsonData(lines.join('\n'), filename, 'text/plain');
+  } catch (error) {
+    console.error('Error exporting chat session as text:', error);
+    throw error;
+  }
+};
+
+/**
  * Helper function to share text data as a file
  */
 const shareJsonData = async (

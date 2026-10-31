@@ -115,4 +115,50 @@ export const createStyles = (theme: MD3Theme) =>
       backgroundColor: theme.colors.outline,
       opacity: 0.3,
     },
+    groupModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    groupModalContent: {
+      width: '80%',
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      padding: 20,
+    },
+    groupModalTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.colors.onSurface,
+      marginBottom: 12,
+    },
+    groupModalInput: {
+      borderWidth: 1,
+      borderColor: theme.colors.outline,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      color: theme.colors.onSurface,
+      fontSize: 15,
+      marginBottom: 16,
+    },
+    groupModalActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 12,
+    },
+    groupModalBtn: {
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+    },
+    groupModalBtnText: {
+      color: theme.colors.onSurfaceVariant,
+      fontSize: 15,
+    },
+    groupModalBtnTextPrimary: {
+      color: theme.colors.primary,
+      fontSize: 15,
+      fontWeight: '600',
+    },
   });

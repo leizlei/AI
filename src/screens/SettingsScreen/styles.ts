@@ -135,4 +135,40 @@ export const createStyles = (theme: Theme) =>
     segmentedButtons: {
       marginVertical: 8,
     },
+    renameDocModalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    renameDocModalContent: {
+      width: '80%',
+      backgroundColor: theme.colors.surface,
+      borderRadius: 16,
+      padding: 20,
+    },
+    renameDocModalTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: theme.colors.onSurface,
+      marginBottom: 12,
+    },
+    renameDocModalInput: {
+      borderWidth: 1,
+      borderColor: theme.colors.outline,
+      borderRadius: 8,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      color: theme.colors.onSurface,
+      fontSize: 15,
+      marginBottom: 16,
+    },
+    renameDocModalActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+    },
+    templateContentInput: {
+      minHeight: 90,
+      textAlignVertical: 'top',
+    },
   });

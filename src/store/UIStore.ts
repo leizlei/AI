@@ -57,6 +57,24 @@ export class UIStore {
   // Warning state for chat-related warnings (like multimodal warnings)
   chatWarning: ErrorState | null = null;
 
+  // Manual tool switches next to the thinking toggle: when enabled, the send
+  // path forcibly retrieves local documents (doc) / runs web search (web) and
+  // injects the excerpts, independent of whether the small local model decides
+  // to issue the function call on its own.
+  docSearchEnabled = false;
+  webSearchEnabled = false;
+
+  // Source documents referenced by the most recent doc-retrieval injection.
+  // Carried on the assistant turn's metadata so the UI can show which files
+  // the reply drew from ("RAG source preview").
+  lastRagSources: {name: string}[] = [];
+
+  setLastRagSources(sources: {name: string}[]) {
+    runInAction(() => {
+      this.lastRagSources = sources;
+    });
+  }
+
   // Models for which the tool-compatibility banner has already been shown.
   // Persisted so each model warns at most once per device.
   toolCompatWarnedModels: string[] = [];
@@ -122,6 +140,8 @@ export class UIStore {
         'toolCompatWarnedModels',
         'hasCompletedOnboarding',
         'onboardingTopicsSnapshot',
+        'docSearchEnabled',
+        'webSearchEnabled',
       ],
       storage: AsyncStorage,
     });

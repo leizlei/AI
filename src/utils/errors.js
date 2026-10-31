@@ -1,0 +1,219 @@
+/**
+ * Error classes for better error handling throughout the application
+ */
+import axios from 'axios';
+import { uiStore } from '../store/UIStore';
+/**
+ * NetworkError - Used for connectivity-related errors
+ * Examples: No internet connection, timeout, etc.
+ */
+export class NetworkError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'NetworkError';
+    }
+}
+/**
+ * AppCheckError - Used for Firebase App Check verification errors
+ * Examples: App not installed from official store, verification failed, etc.
+ */
+export class AppCheckError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'AppCheckError';
+    }
+}
+/**
+ * The router load a remote model needed was withdrawn by the user's own
+ * action: a cancel, or an edit or removal of its server. A type of its own so
+ * a surface can stay silent: the user knows why it ended.
+ */
+export class RemoteModelRequestWithdrawnError extends Error {
+    constructor() {
+        super('Remote model request withdrawn');
+        this.name = 'RemoteModelRequestWithdrawnError';
+    }
+}
+/**
+ * The remote model never became ready. `serverMessage` holds only the
+ * server's own bounded words, so a surface can set them apart from the app's
+ * sentence for the cause.
+ */
+export class RemoteModelNotReadyError extends Error {
+    constructor(cause, serverMessage) {
+        super(`Remote model not ready: ${cause}`);
+        this.name = 'RemoteModelNotReadyError';
+        this.cause = cause;
+        this.serverMessage = serverMessage;
+    }
+}
+/** A non-2xx answer to a remote request, with the server's own message. */
+export class RemoteHttpError extends Error {
+    constructor(message, status, serverMessage) {
+        super(message);
+        this.name = 'RemoteHttpError';
+        this.status = status;
+        this.serverMessage = serverMessage;
+    }
+}
+/**
+ * ServerError - Used for backend server errors
+ * Examples: 500 errors, API unavailable, etc.
+ */
+export class ServerError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'ServerError';
+    }
+}
+/**
+ * Helper function to create a standardized error state from any error
+ */
+export function createErrorState(error, context, service, metadata, severity = 'error') {
+    const l10nObject = uiStore.l10n;
+    let code = 'unknown';
+    let message = l10nObject.errors.unexpectedError;
+    let recoverable = true;
+    let errorService = service;
+    if (axios.isAxiosError(error)) {
+        const statusCode = error.response?.status;
+        // Check URL to determine service if not explicitly provided
+        if (!errorService) {
+            const url = error.config?.url || '';
+            if (url.includes('huggingface.co') || url.includes('hf.co')) {
+                errorService = 'huggingface';
+            }
+        }
+        if (statusCode === 401) {
+            code = 'authentication';
+            message =
+                errorService === 'huggingface'
+                    ? context === 'search'
+                        ? l10nObject.errors.hfAuthenticationErrorSearch
+                        : l10nObject.errors.hfAuthenticationError
+                    : l10nObject.errors.authenticationError;
+        }
+        else if (statusCode === 403) {
+            code = 'authorization';
+            message =
+                errorService === 'huggingface'
+                    ? l10nObject.errors.hfAuthorizationError
+                    : l10nObject.errors.authorizationError;
+        }
+        else if (statusCode && statusCode >= 500) {
+            code = 'server';
+            message =
+                errorService === 'huggingface'
+                    ? l10nObject.errors.hfServerError
+                    : l10nObject.errors.serverError;
+        }
+        else if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+            code = 'network';
+            message =
+                errorService === 'huggingface'
+                    ? l10nObject.errors.hfNetworkTimeout
+                    : l10nObject.errors.networkTimeout;
+        }
+        else if (error.code === 'ERR_NETWORK') {
+            code = 'network';
+            message =
+                errorService === 'huggingface'
+                    ? l10nObject.errors.hfNetworkError
+                    : l10nObject.errors.networkError;
+        }
+    }
+    else if (error instanceof NetworkError) {
+        code = 'network';
+        message = error.message;
+    }
+    else if (error instanceof ServerError) {
+        code = 'server';
+        message = error.message;
+    }
+    else if (error instanceof Error) {
+        // Handle error messages containing HTTP status codes (e.g., 'Client error: 403')
+        if (typeof error.message === 'string') {
+            const statusCodeMatch = error.message.match(/(?:Client error:|status:?)\s*(\d{3})/i);
+            if (statusCodeMatch) {
+                const statusCode = parseInt(statusCodeMatch[1], 10);
+                if (statusCode === 401) {
+                    code = 'authentication';
+                    message =
+                        errorService === 'huggingface'
+                            ? l10nObject.errors.hfAuthenticationError
+                            : l10nObject.errors.authenticationError;
+                }
+                else if (statusCode === 403) {
+                    code = 'authorization';
+                    message =
+                        errorService === 'huggingface'
+                            ? l10nObject.errors.hfAuthorizationError
+                            : l10nObject.errors.authorizationError;
+                }
+                else if (statusCode >= 500) {
+                    code = 'server';
+                    message =
+                        errorService === 'huggingface'
+                            ? l10nObject.errors.hfServerError
+                            : l10nObject.errors.serverError;
+                }
+                else {
+                    // Other status codes (400, 404, etc.) - preserve the original message
+                    message = error.message;
+                }
+            }
+            else if (error.message.includes('storage') ||
+                error.message.includes('space')) {
+                code = 'storage';
+                message = error.message;
+            }
+            else {
+                message = error.message;
+            }
+        }
+        else {
+            message = error.message;
+        }
+    }
+    else {
+        // Fallback for non-Error objects (e.g., from native JSI calls)
+        // This handles cases where errors cross the JS-native boundary
+        // and may not be proper Error instances
+        if (error && typeof error === 'object' && 'message' in error) {
+            message = String(error.message);
+        }
+        else if (typeof error === 'string') {
+            message = error;
+        }
+        else if (error !== null && error !== undefined) {
+            // Last resort: stringify the error
+            try {
+                message = JSON.stringify(error);
+            }
+            catch {
+                message = String(error);
+            }
+        }
+    }
+    return {
+        code,
+        service: errorService,
+        message,
+        context,
+        recoverable,
+        severity,
+        metadata,
+    };
+}
+/**
+ * Helper function to create a multimodal warning state
+ */
+export function createMultimodalWarning(message, context = 'chat') {
+    return {
+        code: 'multimodal',
+        message,
+        context,
+        recoverable: false,
+        severity: 'warning',
+    };
+}

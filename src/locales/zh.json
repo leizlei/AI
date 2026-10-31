@@ -258,7 +258,24 @@
       "importing": "导入中…",
       "empty": "还没有文档，点“导入”添加一个文本文件。",
       "removeButton": "移除",
-      "imported": "已导入：{{name}}"
+      "imported": "已导入：{{name}}",
+      "chunkCountLabel": "每次检索的片段数",
+      "chunkCountDescription": "每次提问喂给模型多少个匹配片段。片段越少，模型上下文留给回答的空间越多。",
+      "renameButton": "重命名",
+      "clearAllButton": "清空全部文档",
+      "renamePlaceholder": "新的文档名"
+    },
+    "promptTemplates": {
+      "title": "提示词模板",
+      "description": "保存可复用的提示词。点模板复制，再粘贴到聊天输入框使用。",
+      "addButton": "新建模板",
+      "empty": "还没有模板，新建一个保存常用提示词。",
+      "copyButton": "复制",
+      "deleteButton": "删除",
+      "copied": "已复制到剪贴板",
+      "newTitle": "新建提示词模板",
+      "titlePlaceholder": "模板标题",
+      "contentPlaceholder": "提示词内容"
     }
   },
   "memory": {
@@ -657,7 +674,20 @@
         "thinkingDisabled": "思考模式已禁用",
         "thinkText": "思考",
         "cycleEffort": "推理强度：{{level}}。双击可切换强度级别"
-      }
+      },
+      "docSearchToggle": {
+        "enableDocSearch": "启用文档搜索",
+        "disableDocSearch": "禁用文档搜索",
+        "docSearchText": "搜文件"
+      },
+      "webSearchToggle": {
+        "enableWebSearch": "启用联网搜索",
+        "disableWebSearch": "禁用联网搜索",
+        "webSearchText": "联网",
+        "notConfiguredTitle": "尚未设置联网连接",
+        "notConfiguredMessage": "请先在设置页配置搜索源（如内网 SearXNG 地址或 API 密钥），再启用联网搜索。"
+      },
+      "quickSettings": "参数"
     },
     "contentReportSheet": {
       "title": "举报内容",
@@ -808,7 +838,8 @@
       "exportAllSessions": "导出所有会话",
       "exportChatSession": "导出聊天会话",
       "importSessions": "导入会话",
-      "exportCurrentSessionMarkdown": "导出为 Markdown"
+      "exportCurrentSessionMarkdown": "导出为 Markdown",
+      "exportCurrentSessionText": "导出为 文本"
     },
     "hfTokenSheet": {
       "title": "Hugging Face 令牌",
@@ -1044,7 +1075,9 @@
         "pinned": "已置顶"
       },
       "pin": "置顶",
-      "unpin": "取消置顶"
+      "unpin": "取消置顶",
+      "moveToGroup": "移动到分组",
+      "moveToGroupPlaceholder": "分组名（留空则移出分组）"
     },
     "usageStats": {
       "tooltip": {
@@ -1083,7 +1116,10 @@
       "truncated": "已截断 — 可能是上下文已满",
       "draftAccepted": "草稿：{{accepted}}/{{total}}（{{pct}}%）",
       "promptTokensPerSec": "{{value}} 提示词 tokens/秒",
-      "cachedTokens": "已缓存 {{value}}"
+      "cachedTokens": "已缓存 {{value}}",
+      "ragSourceLabel": "来源",
+      "ragSourceTitle": "参考文档",
+      "ragSourceOk": "确定"
     },
     "pendingIndicator": {
       "preparingTool": "正在准备工具",

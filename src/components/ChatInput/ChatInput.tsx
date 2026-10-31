@@ -24,6 +24,9 @@ import {
   VideoRecorderIcon,
   PlusIcon,
   AtomIcon,
+  GlobeIcon,
+  SearchIcon,
+  SettingsIcon,
 } from '../../assets/icons';
 
 import {useTheme, useVoiceCapture} from '../../hooks';
@@ -88,6 +91,24 @@ export interface ChatInputTopLevelProps {
   isThinkingEnabled?: boolean;
   /** Callback when thinking toggle is pressed */
   onThinkingToggle?: (enabled: boolean) => void;
+
+  /** Whether to show the doc-search toggle button */
+  showDocSearchToggle?: boolean;
+  /** Whether doc-search is currently enabled */
+  isDocSearchEnabled?: boolean;
+  /** Callback when doc-search toggle is pressed */
+  onDocSearchToggle?: (enabled: boolean) => void;
+
+  /** Whether to show the web-search toggle button */
+  showWebSearchToggle?: boolean;
+  /** Whether web-search is currently enabled */
+  isWebSearchEnabled?: boolean;
+  /** Callback when web-search toggle is pressed */
+  onWebSearchToggle?: (enabled: boolean) => void;
+  /** Whether a search provider is configured (web toggle only enabled then) */
+  webSearchConfigured?: boolean;
+  /** Callback to open the quick model-parameter sheet from the input bar. */
+  onChatSettingsPress?: () => void;
   /** Append a voice transcript to the composer (never auto-sent). */
   appendTranscript?: (text: string) => void;
   /**
@@ -120,6 +141,24 @@ export interface ChatInputAdditionalProps {
   isThinkingEnabled?: boolean;
   /** Callback when thinking toggle is pressed */
   onThinkingToggle?: (enabled: boolean) => void;
+
+  /** Whether to show the doc-search toggle button */
+  showDocSearchToggle?: boolean;
+  /** Whether doc-search is currently enabled */
+  isDocSearchEnabled?: boolean;
+  /** Callback when doc-search toggle is pressed */
+  onDocSearchToggle?: (enabled: boolean) => void;
+
+  /** Whether to show the web-search toggle button */
+  showWebSearchToggle?: boolean;
+  /** Whether web-search is currently enabled */
+  isWebSearchEnabled?: boolean;
+  /** Callback when web-search toggle is pressed */
+  onWebSearchToggle?: (enabled: boolean) => void;
+  /** Whether a search provider is configured (web toggle only enabled then) */
+  webSearchConfigured?: boolean;
+  /** Callback to open the quick model-parameter sheet from the input bar. */
+  onChatSettingsPress?: () => void;
   /** Whether the model supports graded reasoning effort (axis 2) */
   supportsEffort?: boolean;
   /** The graded effort value set, e.g. ['low','medium','high'] */
@@ -162,6 +201,14 @@ export const ChatInput = observer(
     showThinkingToggle = false,
     isThinkingEnabled = false,
     onThinkingToggle,
+    showDocSearchToggle = false,
+    isDocSearchEnabled = false,
+    onDocSearchToggle,
+    showWebSearchToggle = false,
+    isWebSearchEnabled = false,
+    onWebSearchToggle,
+    webSearchConfigured = false,
+    onChatSettingsPress,
     appendTranscript,
     onVoicePress,
     supportsEffort = false,
@@ -688,6 +735,142 @@ export const ChatInput = observer(
                       {supportsEffort && isThinkingEnabled && reasoningEffort
                         ? localizedEffort
                         : l10n.components.chatInput.thinkingToggle.thinkText}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {/* Doc-Search Toggle. Mirrors the thinking toggle's pill
+                  look. When enabled the send path force-retrieves imported
+                  documents and injects the excerpts, independent of whether
+                  the model issues the local_docs tool call on its own. */}
+                {showDocSearchToggle && !isCameraActive && (
+                  <TouchableOpacity
+                    testID="doc-search-toggle"
+                    style={[
+                      styles.thinkingToggleLeft,
+                      isDocSearchEnabled && {backgroundColor: onSurfaceColor},
+                      {borderColor: onSurfaceColorVariant},
+                    ]}
+                    onPress={() => onDocSearchToggle?.(!isDocSearchEnabled)}
+                    accessibilityLabel={
+                      isDocSearchEnabled
+                        ? l10n.components.chatInput.docSearchToggle
+                            .disableDocSearch
+                        : l10n.components.chatInput.docSearchToggle
+                            .enableDocSearch
+                    }
+                    accessibilityRole="button">
+                    <SearchIcon
+                      width={14}
+                      height={14}
+                      stroke={
+                        isDocSearchEnabled
+                          ? inputBackgroundColor
+                          : onSurfaceColorVariant
+                      }
+                      strokeWidth={2}
+                    />
+                    <Text
+                      testID="doc-search-toggle-label"
+                      numberOfLines={1}
+                      style={[
+                        styles.thinkingToggleText,
+                        isDocSearchEnabled
+                          ? {color: inputBackgroundColor}
+                          : {color: onSurfaceColorVariant},
+                      ]}>
+                      {l10n.components.chatInput.docSearchToggle.docSearchText}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {/* Web-Search Toggle. Same pill look; but only enabled once a
+                  search provider is configured. Tapping while unconfigured
+                  shows a hint instead of toggling. */}
+                {showWebSearchToggle && !isCameraActive && (
+                  <TouchableOpacity
+                    testID="web-search-toggle"
+                    style={[
+                      styles.thinkingToggleLeft,
+                      isWebSearchEnabled && {backgroundColor: onSurfaceColor},
+                      {borderColor: onSurfaceColorVariant},
+                      !webSearchConfigured &&
+                        !isWebSearchEnabled && {opacity: 0.45},
+                    ]}
+                    onPress={() => {
+                      if (!webSearchConfigured) {
+                        Alert.alert(
+                          l10n.components.chatInput.webSearchToggle
+                            .notConfiguredTitle,
+                          l10n.components.chatInput.webSearchToggle
+                            .notConfiguredMessage,
+                        );
+                        return;
+                      }
+                      onWebSearchToggle?.(!isWebSearchEnabled);
+                    }}
+                    accessibilityLabel={
+                      !webSearchConfigured
+                        ? l10n.components.chatInput.webSearchToggle
+                            .notConfiguredTitle
+                        : isWebSearchEnabled
+                          ? l10n.components.chatInput.webSearchToggle
+                              .disableWebSearch
+                          : l10n.components.chatInput.webSearchToggle
+                              .enableWebSearch
+                    }
+                    accessibilityRole="button">
+                    <GlobeIcon
+                      width={14}
+                      height={14}
+                      stroke={
+                        isWebSearchEnabled
+                          ? inputBackgroundColor
+                          : onSurfaceColorVariant
+                      }
+                      strokeWidth={2}
+                    />
+                    <Text
+                      testID="web-search-toggle-label"
+                      numberOfLines={1}
+                      style={[
+                        styles.thinkingToggleText,
+                        isWebSearchEnabled
+                          ? {color: inputBackgroundColor}
+                          : {color: onSurfaceColorVariant},
+                      ]}>
+                      {l10n.components.chatInput.webSearchToggle.webSearchText}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {/* Quick model-parameter shortcut (temperature / top-p /
+                  max tokens). Opens the same generation-settings sheet that
+                  the header menu shows, but one tap away from the input. */}
+                {onChatSettingsPress && (
+                  <TouchableOpacity
+                    testID="chat-settings-toggle"
+                    style={[
+                      styles.thinkingToggleLeft,
+                      {borderColor: onSurfaceColorVariant},
+                    ]}
+                    onPress={onChatSettingsPress}
+                    accessibilityLabel={l10n.components.chatInput.quickSettings}
+                    accessibilityRole="button">
+                    <SettingsIcon
+                      width={14}
+                      height={14}
+                      stroke={onSurfaceColorVariant}
+                      strokeWidth={2}
+                    />
+                    <Text
+                      testID="chat-settings-toggle-label"
+                      numberOfLines={1}
+                      style={[
+                        styles.thinkingToggleText,
+                        {color: onSurfaceColorVariant},
+                      ]}>
+                      {l10n.components.chatInput.quickSettings}
                     </Text>
                   </TouchableOpacity>
                 )}

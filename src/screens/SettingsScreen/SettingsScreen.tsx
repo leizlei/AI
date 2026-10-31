@@ -9,6 +9,7 @@ import {
   Alert,
   Linking,
   TouchableOpacity,
+  Modal,
 } from 'react-native';
 
 import {debounce} from 'lodash';
@@ -69,6 +70,8 @@ import {
 import {authService} from '../../services';
 import type {SearchProviderId} from '../../services/search/types';
 import {documentStore} from '../../services/documents/documentStore';
+import {promptTemplateStore} from '../../store';
+import Clipboard from '@react-native-clipboard/clipboard';
 import {
   ASR_DISK_HEADROOM_FACTOR,
   ASR_INSUFFICIENT_STORAGE,
@@ -131,6 +134,11 @@ export const SettingsScreen: React.FC = observer(() => {
   // Lightweight feedback message for the document library import action.
   const [docMessage, setDocMessage] = useState('');
   const [importingDoc, setImportingDoc] = useState(false);
+  const [renameDocId, setRenameDocId] = useState<string | null>(null);
+  const [renameDocName, setRenameDocName] = useState('');
+  const [templateModalVisible, setTemplateModalVisible] = useState(false);
+  const [templateTitle, setTemplateTitle] = useState('');
+  const [templateContent, setTemplateContent] = useState('');
   const [gpuSupported, setGpuSupported] = useState(false);
   const [deviceOptions, setDeviceOptions] = useState<DeviceOption[]>([]);
   const [currentBackend, setCurrentBackend] = useState<
@@ -1634,6 +1642,31 @@ export const SettingsScreen: React.FC = observer(() => {
                   </Text>
                 ) : null}
 
+                {/* RAG chunk count: how many matching chunks each query returns */}
+                <View style={styles.switchContainer}>
+                  <View style={styles.textContainer}>
+                    <Text variant="titleMedium" style={styles.textLabel}>
+                      {l10n.settings.docLibrary.chunkCountLabel}
+                    </Text>
+                    <Text variant="labelSmall" style={styles.textDescription}>
+                      {l10n.settings.docLibrary.chunkCountDescription}
+                    </Text>
+                  </View>
+                  <Text variant="bodyMedium">
+                    {documentStore.retrievalChunkCount.toString()}
+                  </Text>
+                </View>
+                <InputSlider
+                  testID="doc-chunk-count-slider"
+                  value={documentStore.retrievalChunkCount}
+                  onValueChange={value =>
+                    (documentStore.retrievalChunkCount = Math.round(value))
+                  }
+                  min={1}
+                  max={8}
+                  step={1}
+                />
+
                 <Divider style={styles.divider} />
                 {documentStore.list().length === 0 ? (
                   <Text variant="labelSmall" style={styles.textDescription}>
@@ -1653,8 +1686,86 @@ export const SettingsScreen: React.FC = observer(() => {
                       </View>
                       <Button
                         mode="text"
+                        onPress={() => {
+                          setRenameDocName(doc.name);
+                          setRenameDocId(doc.id);
+                        }}>
+                        {l10n.settings.docLibrary.renameButton}
+                      </Button>
+                      <Button
+                        mode="text"
                         onPress={() => documentStore.removeDocument(doc.id)}>
                         {l10n.settings.docLibrary.removeButton}
+                      </Button>
+                    </View>
+                  ))
+                )}
+                {documentStore.list().length > 0 ? (
+                  <Button
+                    mode="text"
+                    onPress={() => documentStore.clearAll()}>
+                    {l10n.settings.docLibrary.clearAllButton}
+                  </Button>
+                ) : null}
+              </View>
+            </Card.Content>
+          </Card>
+
+          {/* Prompt Templates */}
+          <Card elevation={0} style={styles.card} testID="prompt-template-card">
+            <Card.Title title={l10n.settings.promptTemplates.title} />
+            <Card.Content>
+              <View style={styles.settingItemContainer}>
+                <Text variant="labelSmall" style={styles.textDescription}>
+                  {l10n.settings.promptTemplates.description}
+                </Text>
+                <Button
+                  testID="prompt-template-add"
+                  mode="outlined"
+                  onPress={() => {
+                    setTemplateTitle('');
+                    setTemplateContent('');
+                    setTemplateModalVisible(true);
+                  }}
+                  style={styles.menuButton}>
+                  {l10n.settings.promptTemplates.addButton}
+                </Button>
+
+                <Divider style={styles.divider} />
+                {promptTemplateStore.all().length === 0 ? (
+                  <Text variant="labelSmall" style={styles.textDescription}>
+                    {l10n.settings.promptTemplates.empty}
+                  </Text>
+                ) : (
+                  promptTemplateStore.all().map(t => (
+                    <View
+                      key={t.id}
+                      style={styles.switchContainer}
+                      testID={`prompt-template-item-${t.id}`}>
+                      <View style={styles.textContainer}>
+                        <Text variant="bodyMedium">{t.title}</Text>
+                        <Text
+                          variant="labelSmall"
+                          style={styles.textDescription}
+                          numberOfLines={2}>
+                          {t.content}
+                        </Text>
+                      </View>
+                      <Button
+                        mode="text"
+                        onPress={async () => {
+                          await Clipboard.setString(t.content);
+                          Alert.alert(
+                            l10n.settings.promptTemplates.copied,
+                            t.title,
+                          );
+                        }}>
+                        {l10n.settings.promptTemplates.copyButton}
+                      </Button>
+                      <Button
+                        mode="text"
+                        onPress={() => promptTemplateStore.remove(t.id)}>
+                        {l10n.settings.promptTemplates.deleteButton}
                       </Button>
                     </View>
                   ))
@@ -1877,6 +1988,106 @@ export const SettingsScreen: React.FC = observer(() => {
           }}
         />
       )}
+
+      <Modal
+        transparent={true}
+        visible={renameDocId !== null}
+        onRequestClose={() => setRenameDocId(null)}
+        animationType="fade">
+        <View style={styles.renameDocModalOverlay}>
+          <View style={styles.renameDocModalContent}>
+            <Text style={styles.renameDocModalTitle}>
+              {l10n.settings.docLibrary.renameButton}
+            </Text>
+            <TextInput
+              style={styles.renameDocModalInput}
+              placeholder={l10n.settings.docLibrary.renamePlaceholder}
+              placeholderTextColor={theme.colors.onSurfaceVariant}
+              value={renameDocName}
+              maxLength={60}
+              onChangeText={setRenameDocName}
+              autoFocus={true}
+              onSubmitEditing={() => {
+                if (renameDocId && renameDocName.trim()) {
+                  documentStore.renameDocument(
+                    renameDocId,
+                    renameDocName.trim(),
+                  );
+                }
+                setRenameDocId(null);
+              }}
+            />
+            <View style={styles.renameDocModalActions}>
+              <Button mode="text" onPress={() => setRenameDocId(null)}>
+                {l10n.common.cancel}
+              </Button>
+              <Button
+                mode="text"
+                onPress={() => {
+                  if (renameDocId && renameDocName.trim()) {
+                    documentStore.renameDocument(
+                      renameDocId,
+                      renameDocName.trim(),
+                    );
+                  }
+                  setRenameDocId(null);
+                }}>
+                {l10n.common.ok}
+              </Button>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        transparent={true}
+        visible={templateModalVisible}
+        onRequestClose={() => setTemplateModalVisible(false)}
+        animationType="fade">
+        <View style={styles.renameDocModalOverlay}>
+          <View style={styles.renameDocModalContent}>
+            <Text style={styles.renameDocModalTitle}>
+              {l10n.settings.promptTemplates.newTitle}
+            </Text>
+            <TextInput
+              style={styles.renameDocModalInput}
+              placeholder={l10n.settings.promptTemplates.titlePlaceholder}
+              placeholderTextColor={theme.colors.onSurfaceVariant}
+              value={templateTitle}
+              maxLength={60}
+              onChangeText={setTemplateTitle}
+            />
+            <TextInput
+              style={[styles.renameDocModalInput, styles.templateContentInput]}
+              placeholder={l10n.settings.promptTemplates.contentPlaceholder}
+              placeholderTextColor={theme.colors.onSurfaceVariant}
+              value={templateContent}
+              multiline={true}
+              onChangeText={setTemplateContent}
+            />
+            <View style={styles.renameDocModalActions}>
+              <Button
+                mode="text"
+                onPress={() => setTemplateModalVisible(false)}>
+                {l10n.common.cancel}
+              </Button>
+              <Button
+                mode="text"
+                onPress={() => {
+                  if (templateTitle.trim() && templateContent.trim()) {
+                    promptTemplateStore.add(
+                      templateTitle,
+                      templateContent,
+                    );
+                    setTemplateModalVisible(false);
+                  }
+                }}>
+                {l10n.common.ok}
+              </Button>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 });

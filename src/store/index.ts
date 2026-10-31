@@ -1,4 +1,6 @@
 export * from './ChatSessionStore';
+export * from './SessionGroupStore';
+export * from './PromptTemplateStore';
 export * from './ModelStore';
 export * from './UIStore';
 export * from './HFStore';

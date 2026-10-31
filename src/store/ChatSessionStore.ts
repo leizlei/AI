@@ -17,6 +17,7 @@ import {chatSessionRepository} from '../repositories/ChatSessionRepository';
 import {defaultCompletionParams} from '../utils/completionSettingsVersions';
 import {derivedText} from '../utils/chat';
 import {palStore} from './PalStore';
+import {sessionGroupStore} from './SessionGroupStore';
 import {deriveToolSchemas} from '../services/talents';
 import {AgentUiState, initialAgentUiState} from '../services/agent';
 
@@ -1160,7 +1161,25 @@ class ChatSessionStore {
 
   get groupedSessions(): SessionGroup {
     const pinnedSessions = this.sessions.filter(s => s.pinned);
-    const unpinnedSessions = this.sessions.filter(s => !s.pinned);
+
+    // Sessions assigned to a user-defined group are collected under that group
+    // name (shown above the date buckets). Everything else falls through to
+    // date grouping below.
+    const groupedSessions = this.sessions.filter(
+      s => !s.pinned && !!sessionGroupStore.groupOf(s.id),
+    );
+    const unpinnedSessions = this.sessions.filter(
+      s => !s.pinned && !sessionGroupStore.groupOf(s.id),
+    );
+
+    const custom: SessionGroup = {};
+    for (const session of groupedSessions) {
+      const g = sessionGroupStore.groupOf(session.id);
+      if (!custom[g]) {
+        custom[g] = [];
+      }
+      custom[g].push(session);
+    }
 
     const groups: SessionGroup = unpinnedSessions.reduce(
       (acc: SessionGroup, session) => {
@@ -1220,6 +1239,16 @@ class ChatSessionStore {
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
       );
     }
+
+    // User-defined groups first (in their creation order), newest first within
+    // each group.
+    sessionGroupStore.allGroups().forEach(g => {
+      if (custom[g]) {
+        orderedGroups[g] = custom[g].sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        );
+      }
+    });
 
     orderedKeys.forEach(key => {
       if (groups[key]) {

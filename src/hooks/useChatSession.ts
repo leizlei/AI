@@ -15,6 +15,8 @@ import {
   ttsStore,
   uiStore,
 } from '../store';
+import {documentStore} from '../services/documents/documentStore';
+import {talentRegistry, registerDefaultTalents} from '../services/talents';
 import type {GenerationLease} from '../store/generationLease';
 import type {PersistedTurnTimings} from '../utils/completionTypes';
 import {
@@ -73,6 +75,65 @@ import {
 // messages API. Creates the empty `assistant_turn` row up-front so the
 // active-vs-persisted predicate sees the right "last message" before the
 // run flips to `preparing`.
+/**
+ * When the manual "docs" toggle is on, retrieve up to TOP_N matching chunks
+ * from the on-device document library and format them as an excerpt block to
+ * prepend to the user turn. Returns '' when the toggle is off, the query has
+ * no meaningful tokens, or no chunk matches.
+ */
+function buildDocContext(query: string): string {
+  if (!uiStore.docSearchEnabled) {
+    return '';
+  }
+  const hits = documentStore.search(query, 3);
+  if (hits.length === 0) {
+    return '';
+  }
+  // Remember which documents were referenced so the reply can preview sources.
+  uiStore.setLastRagSources(
+    [...new Map(hits.map(h => [h.name, {name: h.name}])).values()],
+  );
+  const block = hits
+    .map((h, i) => `[${i + 1}] From "${h.name}":\n${h.text}`)
+    .join('\n\n---\n\n');
+  return `=====参考文档片段=====\n${block}\n========================`;
+}
+
+/**
+ * When the manual "web" toggle is on, force a web search through the already
+ * registered `web_search` engine (reusing its cache, result budget and
+ * read_url allowlist wiring) and return its formatted summary. Returns '' when
+ * the toggle is off or the search yields nothing usable.
+ */
+async function buildWebContext(
+  query: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  if (!uiStore.webSearchEnabled) {
+    return '';
+  }
+  registerDefaultTalents();
+  const engine = talentRegistry.get('web_search');
+  if (!engine) {
+    return '';
+  }
+  try {
+    const result = await engine.execute(
+      {query},
+      signal ? {signal} : undefined,
+    );
+    if (result.type === 'error' || !result.summary) {
+      return '';
+    }
+    return `=====联网搜索结果=====\n${result.summary}\n========================`;
+  } catch (e) {
+    if (__DEV__) {
+      console.warn('[chat] forced web search failed; skipping injection', e);
+    }
+    return '';
+  }
+}
+
 const prepareCompletion = async ({
   imageUris,
   message,
@@ -107,11 +168,21 @@ const prepareCompletion = async ({
   // string for text-only.
   let userMessageContent: any;
 
+  // When the manual toggles are on, force-retrieve local documents and/or run
+  // a web search, then prepend the excerpts to the user turn. This grounds the
+  // reply even when the small local model would not issue the matching tool
+  // call on its own.
+  const [docContext, webContext] = await Promise.all([
+    Promise.resolve(buildDocContext(message.text)),
+    buildWebContext(message.text),
+  ]);
+  const userPrefix = [docContext, webContext].filter(Boolean).join('\n\n');
+
   if (hasImages && isMultimodalEnabled) {
     userMessageContent = [
       {
         type: 'text',
-        text: message.text,
+        text: userPrefix ? `${userPrefix}\n\n${message.text}` : message.text,
       },
       ...imageUris.map(path => ({
         type: 'image_url',
@@ -119,7 +190,9 @@ const prepareCompletion = async ({
       })),
     ];
   } else {
-    userMessageContent = message.text;
+    userMessageContent = userPrefix
+      ? `${userPrefix}\n\n${message.text}`
+      : message.text;
 
     if (hasImages && !isMultimodalEnabled) {
       uiStore.setChatWarning(
@@ -247,6 +320,9 @@ const prepareCompletion = async ({
       // run_finished (success/maxTurns) or at the abort catch path with
       // partial content.
       multimodal: hasImages,
+      ...(uiStore.lastRagSources.length > 0
+        ? {ragSources: uiStore.lastRagSources}
+        : {}),
       ...(spoken ? {spoken: true} : {}),
     },
   };

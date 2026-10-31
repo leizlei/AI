@@ -1,12 +1,12 @@
 import React, {useContext} from 'react';
-import {TouchableOpacity, View} from 'react-native';
+import {Alert, TouchableOpacity, View} from 'react-native';
 
 import {observer} from 'mobx-react';
 import {Text} from 'react-native-paper';
 import Clipboard from '@react-native-clipboard/clipboard';
 import ReactNativeHapticFeedback from 'react-native-haptic-feedback';
 
-import {CopyIcon} from '../../assets/icons';
+import {CopyIcon, SearchIcon} from '../../assets/icons';
 import {useTheme} from '../../hooks';
 import {PlayButton} from '../TextMessage/PlayButton';
 
@@ -36,8 +36,10 @@ export const AssistantTurnFooter: React.FC<AssistantTurnFooterProps> = observer(
     const {copyable, interrupted, truncationLikely, completionResult} =
       message.metadata || {};
     const timings: PersistedTurnTimings | undefined = message.metadata?.timings;
+    const ragSources: {name: string}[] | undefined = message.metadata
+      ?.ragSources;
 
-    if (!timings && !copyable && !interrupted) {
+    if (!timings && !copyable && !interrupted && !ragSources?.length) {
       return null;
     }
 
@@ -120,6 +122,17 @@ export const AssistantTurnFooter: React.FC<AssistantTurnFooterProps> = observer(
       Clipboard.setString(derivedText(message).trim());
     };
 
+    const showRagSources = () => {
+      if (!ragSources?.length) {
+        return;
+      }
+      Alert.alert(
+        l10n.components.bubble.ragSourceTitle,
+        ragSources.map((s, i) => `${i + 1}. ${s.name}`).join('\n'),
+        [{text: l10n.components.bubble.ragSourceOk}],
+      );
+    };
+
     return (
       <View style={componentStyles.container} testID="assistant-turn-footer">
         <PlayButton message={message} />
@@ -132,6 +145,22 @@ export const AssistantTurnFooter: React.FC<AssistantTurnFooterProps> = observer(
             />
           </TouchableOpacity>
         )}
+        {ragSources && ragSources.length > 0 ? (
+          <TouchableOpacity
+            onPress={showRagSources}
+            testID="footer-rag-sources"
+            style={componentStyles.ragSourceChip}>
+            <SearchIcon
+              stroke={theme.colors.textSecondary}
+              width={14}
+              height={14}
+            />
+            <Text style={componentStyles.ragSourceText} numberOfLines={1}>
+              {l10n.components.bubble.ragSourceLabel}:{' '}
+              {ragSources.map(s => s.name).join(', ')}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
         {timings && fullTimingsString ? (
           <Text style={componentStyles.timing} testID="footer-timing">
             {fullTimingsString}

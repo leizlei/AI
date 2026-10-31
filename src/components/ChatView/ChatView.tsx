@@ -83,6 +83,7 @@ import {
   Menu,
   PendingIndicator,
   ChatPalModelPickerSheet,
+  ChatGenerationSettingsSheet,
   ChatHeader,
   ChatEmptyPlaceholder,
   VideoPalEmptyPlaceholder,
@@ -293,6 +294,7 @@ export const ChatView = observer(
     inputTextRef.current = inputText;
     const [inputImages, setInputImages] = React.useState<string[]>([]);
     const [isPickerVisible, setIsPickerVisible] = React.useState(false);
+    const [chatSettingsVisible, setChatSettingsVisible] = React.useState(false);
     const [_selectedModel, setSelectedModel] = React.useState<string | null>(
       null,
     );
@@ -1229,6 +1231,7 @@ export const ChatView = observer(
                     inputBackgroundColor,
                     onCancelEdit: handleCancelEdit,
                     onPalBtnPress: () => setIsPickerVisible(!isPickerVisible),
+                    onChatSettingsPress: () => setChatSettingsVisible(true),
                     isStopVisible,
                     isPickerVisible,
                     sendButtonVisibilityMode,
@@ -1296,6 +1299,13 @@ export const ChatView = observer(
                 onPalSelect={handlePalSelect}
                 onPalSettingsSelect={onPalSettingsSelect}
                 chatInputHeight={chatInputHeight.height}
+              />
+            )}
+
+            {chatSettingsVisible && (
+              <ChatGenerationSettingsSheet
+                isVisible={chatSettingsVisible}
+                onClose={() => setChatSettingsVisible(false)}
               />
             )}
           </Reanimated.View>
