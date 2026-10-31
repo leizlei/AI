@@ -66,6 +66,9 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
+      - name: Grant execute permission for gradlew
+        run: chmod +x android/gradlew
+
       # google-services plugin is applied at build time; Firebase needs a
       # (dummy) config even for an offline debug build.
       - name: Create dummy google-services.json
