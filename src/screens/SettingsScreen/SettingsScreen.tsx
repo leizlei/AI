@@ -1472,10 +1472,17 @@ export const SettingsScreen: React.FC = observer(() => {
                           }
                           selected={provider.id === activeSearchProviderId}
                           onPress={() => {
-                            searchProviderStore.setActiveProvider(
-                              provider.id as SearchProviderId,
-                            );
+                            // Close the Menu first (releases its Modal
+                            // overlay), then switch provider on the next
+                            // frame so the layout that swaps between
+                            // BYOK-key and SearXNG-URL fields doesn't leave
+                            // a black residual block behind.
                             searchProviderMenu.close();
+                            requestAnimationFrame(() => {
+                              searchProviderStore.setActiveProvider(
+                                provider.id as SearchProviderId,
+                              );
+                            });
                           }}
                         />
                       ))}
