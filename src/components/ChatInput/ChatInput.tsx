@@ -597,8 +597,14 @@ export const ChatInput = observer(
             />
           ) : (
             <View style={styles.controlBar}>
-              {/* Left Controls */}
-              <View style={styles.leftControls}>
+              {/* Left Controls — horizontal scroll so many pills never
+                  overlap into the voice/send buttons on narrow screens. */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                style={{flexGrow: 0, flexShrink: 1}}
+                contentContainerStyle={styles.leftControls}>
                 {/* Plus Button for Image Upload (only for regular chat) */}
                 {showImageUpload && !isVideoCapable && (
                   <Menu
@@ -874,7 +880,7 @@ export const ChatInput = observer(
                     </Text>
                   </TouchableOpacity>
                 )}
-              </View>
+              </ScrollView>
 
               {/* Right Controls */}
               <View style={styles.rightControls}>
