@@ -58,7 +58,6 @@ import {
 import {
   collectSystemPromptFragments,
   seedReadUrlAllowlist,
-  talentRegistry,
 } from '../services/talents';
 import type {ToolDefinition} from '../services/talents/types';
 import {
