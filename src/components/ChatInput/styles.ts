@@ -44,12 +44,11 @@ export const createStyles = ({
       justifyContent: 'center',
       borderRadius: 16,
       borderWidth: 1,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      marginLeft: 8,
-      // Give up width only once the pal name has none left.
-      flexShrink: 0.001,
-      minWidth: 32,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      // Fixed comfortable tap target so pills never overlap.
+      minWidth: 40,
+      minHeight: 34,
     },
     thinkingToggleLeftDisabled: {
       backgroundColor: 'transparent',
@@ -109,8 +108,8 @@ export const createStyles = ({
     leftControls: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
-      flex: 1,
+      gap: 14,
+      paddingRight: 8,
     },
     rightControls: {
       position: 'relative',
